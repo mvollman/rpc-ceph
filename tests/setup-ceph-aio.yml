@@ -27,3 +27,6 @@
 # to exist.
 - include: ../playbooks/ceph-setup-logging.yml
 - include: test-logging.yml
+
+## Prometheus
+- include: test-prometheus.yml

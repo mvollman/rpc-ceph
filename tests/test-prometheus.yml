@@ -1,0 +1,33 @@
+---
+- hosts: monitoring_all
+  tasks:
+   - name: Get Prometheus
+     unarchive:
+       src: https://github.com/prometheus/prometheus/releases/download/v2.1.0/prometheus-2.1.0.linux-amd64.tar.gz
+       dest: /tmp
+       remote_src: yes
+
+   - name: Get Alertmanager
+     unarchive:
+       src: https://github.com/prometheus/alertmanager/releases/download/v0.13.0/alertmanager-0.13.0.linux-amd64.tar.gz
+       dest: /tmp
+       remote_src: yes
+
+   - name: Copy Prometheus
+     copy:
+       src: /tmp/prometheus-2.1.0.linux-amd64/prometheus
+       dest: /usr/sbin/prometheus
+       mode: 0755
+       remote_src: yes
+
+   - name: Copy Prometheus
+     copy:
+       src: /tmp/alertmanager-0.13.0.linux-amd64/alertmanager
+       dest: /usr/sbin/alertmanager
+       mode: 0755
+       remote_src: yes
+
+- hosts: mon1
+  tasks:
+   - name: Enable prometheus
+     command: ceph mgr module enable prometheus --force

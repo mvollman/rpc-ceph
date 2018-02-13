@@ -19,6 +19,7 @@ osd2
 rgw1
 allsvc
 rsyslog1
+monitoring1
 
 [rgws]
 rgw1
@@ -41,6 +42,9 @@ allsvc
 
 [rsyslog_all]
 rsyslog1
+
+[monitoring_all]
+monitoring1
 
 [benchmark_hosts]
 localhost
