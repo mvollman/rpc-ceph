@@ -78,6 +78,24 @@ fio_bench_list_default:
     iodepth: 8
     numjobs: 1
     run_bench: "{{ rbd_bench | default(True) }}"
+  - src: "fio_direct_test.cfg.j2"
+    name: "fio_direct_16k_randwrite_RBD"
+    override: "{{ fio_rbd_randwrite_16k_overrides | default({}) }}"
+    blocksize: "16k"
+    ioengine: rbd
+    iodepth: 1
+    rw: randwrite
+    numjobs: 16
+    run_bench: "{{ rbd_bench | default(True) }}"
+  - src: "fio_direct_test.cfg.j2"
+    name: "fio_direct_16k_randread_RBD"
+    override: "{{ fio_rbd_randread_16k_overrides | default({}) }}"
+    blocksize: "16k"
+    ioengine: rbd
+    iodepth: 1
+    rw: randread
+    numjobs: 16
+    run_bench: "{{ rbd_bench | default(True) }}"
 
 fio_bench_list: "{{ (fio_bench_list_default | union(fio_bench_list_extras)) }}"
 fio_bench_list_extras: []
