@@ -112,6 +112,30 @@
       with_sequence: count={{ client_count }}
       register: client_nodes
 
+<<<<<<< HEAD:playbooks/phobos-deploy-nodes.yml
+=======
+    - name: Deploy Admin Nodes
+      os_server:
+        state: present
+        name: "ceph-{{ cluster_deploy_version }}-admin"
+        image: "{{ log_image }}"
+        flavor: "{{ log_flavor }}"
+        key_name: "{{ ssh_keyname }}"
+        nics: "{{ networks }}"
+        meta: "instance_role=ceph-{{ cluster_deploy_version }}-admin"
+        timeout: 720
+        validate_certs: false
+        cloud: phobos
+        userdata: |
+          {%- raw -%}#!/bin/bash
+          echo "auto ens4" >> /etc/network/interfaces.d/ens4.cfg
+          echo "iface ens4 inet dhcp" >> /etc/network/interfaces.d/ens4.cfg
+          ifdown ens4 && ifup ens4
+          {% endraw %}
+      with_sequence: count={{ log_count }}
+      register: admin_nodes
+
+>>>>>>> CEPHSTORA-215 Add VLAN Configuration to Phobos:playbooks/deploy-phobos-nodes.yml
     - name: Wait for SSH
       command: >
         ssh -o BatchMode=yes
@@ -295,3 +319,16 @@
         validate_certs: false
       with_items: "{{ dedicated_devices | default([]) }} + {{ devices }}"
       when: not ironic
+
+    - name: Ensure permissions on fetch
+      file:
+        path: "/opt/rpc-ceph/{{ item }}/fetch"
+        state: directory
+        owner: ubuntu
+        group: rpc
+      with_items:
+        - playbooks
+        - benchmark
+
+- name: Add Ceph Networks
+  import_playbook: add-ceph-interfaces.yml
