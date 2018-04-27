@@ -1,0 +1,106 @@
+---
+log_flavor: vm-osa-aio
+log_image: a4a9bc69-de27-4cec-903a-cf57be693738
+log_count: 1
+
+stor_flavor: ironic-rpc-storage-perf
+stor_image: 78856fa6-1de4-42d3-b545-466f6501e21f
+
+security_group: 58753c65-1804-4eee-8349-77f1c5573001
+external_network: ironic
+networks:
+  - net-name: "{{ external_network }}"
+
+fiobench_pgnum: 4096
+fiobench_size: 100G
+
+bench_rgw_user_password: rgwbenchsecret
+
+monitor_interface: bond0
+public_network: 172.20.54.0/24
+cluster_network: 172.20.55.0/24
+osd_scenario: collocated
+devices:
+  - /dev/sdb
+  - /dev/sdc
+  - /dev/sdd
+  - /dev/sde
+  - /dev/sdf
+  - /dev/sdg
+  - /dev/sdh
+  - /dev/sdi
+  - /dev/sdj
+  - /dev/sdk
+  - /dev/sdl
+  - /dev/sdm
+  - /dev/sdn
+  - /dev/sdo
+  - /dev/sdp
+  - /dev/sdq
+  - /dev/sdr
+  - /dev/sds
+  - /dev/sdt
+  - /dev/sdu
+  - /dev/sdv
+  - /dev/sdw
+  - /dev/sdx
+  - /dev/sdy
+
+ceph_interfaces:
+  - name: bond0.269
+    netmask: 255.255.255.0
+    network: 172.20.54.0
+  - name: bond0.270
+    netmask: 255.255.255.0
+    network: 172.20.55.0
+
+osa_interfaces:
+  - name: bond0.267
+  - name: br-mgmt
+    bridge: true
+    bridge_ports: bond0.267
+    netmask: 255.255.255.0
+    network: 172.20.52.0
+  - name: br-vlan
+    bridge: true
+  - name: bond0.268
+  - name: br-vxlan
+    bridge: true
+    bridge_ports: bond0.268
+    netmask: 255.255.255.0
+    network: 172.20.53.0
+  - name: bond0.269
+  - name: br-storage
+    bridge: true
+    bridge_ports: bond0.269
+    netmask: 255.255.255.0
+    network: 172.20.54.0
+
+node_ips:
+  ceph1:
+    storage:
+      address: 172.20.54.41
+      netmask: 255.255.255.0
+      interface: bond0.269
+    replication:
+      address: 172.20.55.41
+      netmask: 255.255.255.0
+      interface: bond0.270
+  ceph2:
+    storage:
+      address: 172.20.54.42
+      netmask: 255.255.255.0
+      interface: bond0.269
+    replication:
+      address: 172.20.55.42
+      netmask: 255.255.255.0
+      interface: bond0.270
+  ceph3:
+    storage:
+      address: 172.20.54.43
+      netmask: 255.255.255.0
+      interface: bond0.269
+    replication:
+      address: 172.20.55.43
+      netmask: 255.255.255.0
+      interface: bond0.270

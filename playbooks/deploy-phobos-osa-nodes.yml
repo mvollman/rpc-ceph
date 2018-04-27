@@ -1,0 +1,113 @@
+---
+
+- name: Deploy Openstack Instances
+  hosts: localhost,
+  connection: local
+
+  tasks:
+    - name: Check for required variables
+      assert:
+        that: item
+      with_items:
+        - cluster_deploy_version
+        - ssh_keyname
+        - infra_count
+        - compute_count
+        - external_network
+      loop_control:
+        label: "Assert {{ item }} is defined"
+
+    - name: Deploy Infra Nodes
+      os_server:
+        state: present
+        name: "osa-{{ cluster_deploy_version }}-infra-{{ item }}"
+        image: "{{ infra_image }}"
+        flavor: "{{ infra_flavor }}"
+        key_name: "{{ ssh_keyname }}"
+        nics:
+          - net-name: "{{ external_network }}"
+        meta: "instance_role=osa-{{ cluster_deploy_version }}-infra"
+        timeout: 720
+        validate_certs: false
+        cloud: phobos
+      with_sequence: count={{ infra_count }}
+      register: infra_nodes
+
+    - name: Deploy Compute Nodes
+      os_server:
+        state: present
+        name: "osa-{{ cluster_deploy_version }}-compute-{{ item }}"
+        image: "{{ compute_image }}"
+        flavor: "{{ compute_flavor }}"
+        key_name: "{{ ssh_keyname }}"
+        nics:
+          - net-name: "{{ external_network }}"
+        meta: "instance_role=osa-{{ cluster_deploy_version }}-compute"
+        timeout: 720
+        validate_certs: false
+        cloud: phobos
+      with_sequence: count={{ compute_count }}
+      register: compute_nodes
+
+    - name: Wait for Infra SSH
+      command: >
+        ssh -o BatchMode=yes
+        -o StrictHostKeyChecking=no
+        -o UserKnownHostsFile=/dev/null
+        -o ConnectTimeout=30
+        ubuntu@{{ item.server.addresses.get(external_network)[0].addr }} true
+      register: infra_ssh_result
+      until: infra_ssh_result|success
+      retries: 300
+      delay: 5
+      with_items: "{{ infra_nodes.results }}"
+      when: infra_count|int > 0
+
+    - name: Wait for Compute SSH
+      command: >
+        ssh -o BatchMode=yes
+        -o StrictHostKeyChecking=no
+        -o UserKnownHostsFile=/dev/null
+        -o ConnectTimeout=30
+        ubuntu@{{ item.server.addresses.get(external_network)[0].addr }} true
+      register: compute_ssh_result
+      until: compute_ssh_result|success
+      retries: 300
+      delay: 5
+      with_items: "{{ compute_nodes.results }}"
+      when: compute_count|int > 0
+
+    - name: Add osa_infra host group
+      add_host:
+        name: "{{ item.server.name }}"
+        groups: osa_infra
+        ansible_host: "{{ item.server.addresses.get(external_network)[0].addr }}"
+        ansible_user: ubuntu
+        ansible_become: true
+        ansible_ssh_extra_args: -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        ansible_python_interpreter: /usr/bin/python3
+        host_id: "{{ item.server.id }}"
+      with_items: "{{ infra_nodes.results }}"
+      when: infra_count|int > 0
+
+    - name: Add osa_compute host group
+      add_host:
+        name: "{{ item.server.name }}"
+        groups: osa_compute
+        ansible_host: "{{ item.server.addresses.get(external_network)[0].addr }}"
+        ansible_user: ubuntu
+        ansible_become: true
+        ansible_ssh_extra_args: -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        ansible_python_interpreter: /usr/bin/python3
+        host_id: "{{ item.server.id }}"
+      with_items: "{{ compute_nodes.results }}"
+      when: compute_count|int > 0
+
+- name: Bootstrap OSA Node
+  import_playbook: rpco_dependencies.yml
+
+- name: Setup bridges
+  import_playbook: add-osa-interfaces.yml
+
+- name: Setup bridges
+  import_playbook: add-osa-comp-interfaces.yml

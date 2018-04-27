@@ -1,0 +1,75 @@
+---
+- hosts: osa_infra
+  become: true
+  tasks:
+    - name: Install dependencies
+      apt:
+        name: "{{ item }}"
+        update_cache: true
+      with_items:
+        - python
+        - python-yaml
+        - virtualenvwrapper
+        - aptitude
+        - build-essential
+        - git
+        - ntp
+        - python-dev
+        - debootstrap
+        - lsof
+        - lvm2
+        - tcpdump
+
+    - name: Clone rpc-openstack
+      git:
+        repo: 'https://github.com/rcbops/rpc-openstack.git'
+        dest: /opt/rpc-openstack
+        version: "{{ openstack_version }}"
+        update: false
+
+    - name: Bootstrap rpc-openstack
+      shell: |
+        RPC_PRODUCT_RELEASE="{{ openstack_version }}" ./scripts/deploy.sh
+      args:
+        chdir: /opt/rpc-openstack
+        creates: /opt/openstack-ansible
+
+    - name: Fix openstack-ansible clone
+      git:
+        repo: 'https://github.com/openstack/openstack-ansible.git'
+        dest: /etc/openstack-ansible
+        version: "stable/{{ openstack_version }}"
+      register: clone_osa
+
+    - name: Seed /etc/openstack_deploy dir
+      shell: cp -rp etc/openstack_deploy/* /etc/openstack_deploy/.
+      args:
+        chdir: /opt/openstack-ansible
+        creates: /etc/openstack_deploy/openstack_user_config.yml.example
+
+    - name: Bootstrap openstack-ansible
+      shell: ./scripts/bootstrap-ansible.sh
+      args:
+        chdir: /opt/openstack-ansible
+        creates: /opt/ansible-runtime/bin/ansible-playbook
+
+    - name: Seed user_secrets
+      shell: ./scripts/pw-token-gen.py --file /etc/openstack_deploy/user_secrets.yml
+      args:
+        chdir: /opt/openstack-ansible
+      when: clone_osa.changed
+      run_once: true
+
+    - name: Get user_secrets
+      fetch:
+        src: /etc/openstack_deploy/user_secrets.yml
+        dest: /tmp/user_secrets.yml
+        flat: yes
+      run_once: true
+      when: clone_osa.changed
+
+    - name: Sync user_secrets
+      copy:
+        src: /tmp/user_secrets.yml
+        dest: /etc/openstack_deploy/user_secrets.yml
+      when: clone_osa.changed
