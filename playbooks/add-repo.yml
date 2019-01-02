@@ -21,6 +21,9 @@
         name: apache2
         state: installed
         update_cache: true
+      register: apt_ws_result
+      retries: 3
+      until: apt_ws_result | success
 
     - name: Configure Primary Repo Server
       block:
@@ -32,6 +35,9 @@
             - dpkg-dev
             - dpkg-sig
             - rng-tools
+          register: apt_dep_result
+          retries: 3
+          until: apt_dep_result | success
 
         - name: Ensure target dir
           file:
@@ -39,6 +45,7 @@
             state: directory
           with_items:
             - "{{ target }}/dists/{{ ansible_distribution_release }}/main/binary-amd64"
+            - "{{ target }}/dists/{{ ansible_distribution_release }}/main/binary-i386"
             - "{{ target }}/pool/main/c/ceph"
             - "{{ gpg_dir }}"
 
@@ -50,7 +57,8 @@
               --include='*/' --exclude='*'
               {{ target }}/pool/main/c/ceph
           args:
-            creates: "{{ target }}/pool/main/c/ceph/ceph_{{ ceph_repo_version }}{{ ansible_distribution_release }}_amd64.deb"
+            creates:
+             "{{ target }}/pool/main/c/ceph/ceph_{{ ceph_repo_version }}{{ ansible_distribution_release }}_amd64.deb"
           tags:
             - skip_ansible_lint
 
@@ -80,7 +88,10 @@
           register: genkey
 
         - name: import keyring
-          command: gpg --no-default-keyring --secret-keyring {{ gpg_dir }}/rackspace.key --keyring {{ gpg_dir }}/rackspace.pub --list-secret-keys
+          command: gpg --no-default-keyring
+                       --secret-keyring {{ gpg_dir }}/rackspace.key
+                       --keyring {{ gpg_dir }}/rackspace.pub
+                       --list-secret-keys
 
         - name: import key
           command: gpg --import {{ gpg_dir }}/rackspace.key
@@ -106,6 +117,14 @@
           args:
             chdir: "{{ target }}"
 
+        - name: Scan packages
+          shell:
+            dpkg-scanpackages -m . /dev/null
+              | tee {{ target }}/dists/{{ ansible_distribution_release }}/main/binary-i386/Packages
+              | gzip > {{ target }}/dists/{{ ansible_distribution_release }}/main/binary-i386/Packages.gz
+          args:
+            chdir: "{{ target }}"
+
         - name: Write Release file
           shell: "apt-ftparchive release . > {{ target }}/dists/{{ ansible_distribution_release }}/Release"
           args:
@@ -119,6 +138,9 @@
         - name: Install rsync
           apt:
             name: rsync
+          register: apt_rsync_result
+          retries: 3
+          until: apt_rsync_result | success
 
         - name: Enable rsync
           copy:
@@ -150,7 +172,8 @@
           --recursive --times --links --hard-links
           {{ target }}/
       args:
-        creates: "{{ target }}/pool/main/c/ceph/ceph_{{ ceph_repo_version }}{{ ansible_distribution_release }}_amd64.deb"
+        creates:
+          "{{ target }}/pool/main/c/ceph/ceph_{{ ceph_repo_version }}{{ ansible_distribution_release }}_amd64.deb"
       when: inventory_hostname != groups["repo_servers"][0]
       tags:
         - skip_ansible_lint
@@ -162,3 +185,6 @@
       apt_key:
         url: 'http://{{ repo_server_addr }}/debian-{{ ceph_stable_release }}/release.asc'
         state: present
+      register: apt_key_result
+      retries: 3
+      until: apt_key_result | success

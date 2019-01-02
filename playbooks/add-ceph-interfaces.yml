@@ -16,6 +16,9 @@
         - vlan
         - ifenslave
         - ifenslave-2.6
+      register: apt_result
+      retries: 3
+      until: apt_result | success
 
     - name: Write interface config
       template:

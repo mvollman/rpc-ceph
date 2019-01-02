@@ -286,6 +286,8 @@
         validate_certs: false
       with_items: "{{ dedicated_devices | default([]) }} + {{ devices }}"
       when: not ironic
+      tags:
+        - skip_ansible_lint
 
     - name: Attach volumes to VMs
       local_action:
@@ -297,3 +299,5 @@
         validate_certs: false
       with_items: "{{ dedicated_devices | default([]) }} + {{ devices }}"
       when: not ironic
+      tags:
+        - skip_ansible_lint

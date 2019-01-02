@@ -12,6 +12,9 @@
         - hpPublicKey2048.pub
         - hpPublicKey2048_key1.pub
         - hpePublicKey2048_key1.pub
+      register: apt_key_result
+      retries: 3
+      until: apt_key_result | success
 
     - name: Add apt source
       copy:
@@ -28,3 +31,6 @@
         name: "{{ ssacli_name | default('ssacli') }}"
         state: present
         update_cache: true
+      register: apt_result
+      retries: 3
+      until: apt_result | success

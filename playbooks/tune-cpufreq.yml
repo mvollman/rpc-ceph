@@ -22,6 +22,9 @@
         name: cpufrequtils
         update_cache: yes
         cache_valid_time: 3600
+      register: apt_result
+      retries: 3
+      until: apt_result | success
 
     - name: "Set CPU Govenor to {{ governor }}"
       lineinfile:

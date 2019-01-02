@@ -17,8 +17,8 @@
 
     - name: disable ceph mgr enabled modules
       command: "{{ docker_exec_cmd_mgr | default('') }} ceph mgr module disable {{ item }}"
-      # When ceph release is jewel, ceph-mgr role is skipped. It means, the enabled_ceph_mgr_modules doesn't contain 'stdout' attribute.
-      # Therefore, we need to get a default value which can be used up by from_json filter.
+      # When ceph release is jewel, ceph-mgr role is skipped. It means, the enabled_ceph_mgr_modules doesn't contain
+      #  'stdout' attribute. Therefore, we need to get a default value which can be used up by from_json filter.
       with_items: "{{ _ceph_mgr_modules.enabled_modules }}"
       delegate_to: "{{ groups[mon_group_name][0] }}"
       when:
